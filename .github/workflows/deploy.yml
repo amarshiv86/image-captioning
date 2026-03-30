@@ -1,0 +1,67 @@
+name: Deploy Image Captioning → HF Spaces
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app.py"
+      - "requirements.txt"
+      - "README.md"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install huggingface_hub
+        run: pip install huggingface_hub
+
+      - name: Create HF Space (idempotent)
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python3 - <<'EOF'
+          from huggingface_hub import HfApi
+          import os
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          api.create_repo(
+              repo_id="amarshiv86/image-captioning-vit-gpt2",
+              repo_type="space",
+              space_sdk="gradio",
+              private=False,
+              exist_ok=True,
+          )
+          print("Space ready ✓")
+          EOF
+
+      - name: Push files to HF Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python3 - <<'EOF'
+          from huggingface_hub import HfApi
+          import os, pathlib
+
+          api = HfApi(token=os.environ["HF_TOKEN"])
+          SPACE = "amarshiv86/image-captioning-vit-gpt2"
+
+          for f in ["app.py", "requirements.txt", "README.md"]:
+              if pathlib.Path(f).exists():
+                  print(f"  uploading {f} ...")
+                  api.upload_file(
+                      path_or_fileobj=f,
+                      path_in_repo=f,
+                      repo_id=SPACE,
+                      repo_type="space",
+                      commit_message=f"ci: deploy {f}",
+                  )
+          print("All files pushed ✓")
+          EOF
+
+      - name: Print live URL
+        run: |
+          echo "✅ https://huggingface.co/spaces/amarshiv86/image-captioning-vit-gpt2"
