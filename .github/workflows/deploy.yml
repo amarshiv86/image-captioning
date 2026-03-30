@@ -48,7 +48,7 @@ jobs:
           api = HfApi(token=os.environ["HF_TOKEN"])
           SPACE = "amarshiv86/image-captioning-vit-gpt2"
 
-          for f in ["app.py", "requirements.txt", "README.md"]:
+          for f in ["app.py", "requirements.txt"]:
               if pathlib.Path(f).exists():
                   print(f"  uploading {f} ...")
                   api.upload_file(
